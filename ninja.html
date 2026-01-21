@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SHADOW RONIN: SAKURA RUN</title>
+    <title>SHADOW RONIN: MOONLIT BLADE</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Permanent+Marker&display=swap');
 
         body {
             margin: 0;
             padding: 0;
-            background-color: #020408;
+            background-color: #0b1016;
             overflow: hidden;
-            font-family: 'Rajdhani', sans-serif;
+            font-family: 'Orbitron', sans-serif;
             touch-action: none;
             user-select: none;
         }
@@ -21,15 +21,13 @@
             display: block;
             width: 100vw;
             height: 100vh;
+            image-rendering: pixelated; /* Retro feel */
         }
 
-        /* --- GLASSMORPHISM UI --- */
+        /* --- UI LAYER --- */
         #ui-layer {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -39,116 +37,178 @@
         .hud-top {
             display: flex;
             justify-content: space-between;
-            padding: 20px;
-        }
-
-        .stat-box {
-            background: rgba(20, 20, 30, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 50, 50, 0.3);
-            padding: 10px 20px;
-            border-radius: 4px;
-            color: #fff;
-            text-shadow: 0 0 10px rgba(255,0,0,0.5);
-            font-size: 20px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transform: skew(-10deg);
-        }
-
-        /* Mobile Controls */
-        #mobile-controls {
-            pointer-events: auto;
-            display: flex;
+            padding: 25px;
             width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            z-index: 5;
+            box-sizing: border-box;
         }
 
-        .touch-zone {
-            flex: 1;
-        }
-
-        /* The Attack Button */
-        #attack-btn-visual {
-            position: absolute;
-            bottom: 40px;
-            right: 30px;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: rgba(255, 0, 0, 0.2);
-            border: 2px solid rgba(255, 50, 50, 0.8);
-            backdrop-filter: blur(4px);
+        .stat-container {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
-            display: none;
+            flex-direction: column;
+            gap: 5px;
         }
 
+        .stat-label {
+            font-size: 12px;
+            color: #00f2ff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 0 0 10px #00f2ff;
+            font-weight: 700;
+        }
+
+        /* Spirit Gauge */
+        .spirit-bar-container {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #555;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #spirit-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0055, #ff5500);
+            box-shadow: 0 0 15px #ff0055;
+            transition: width 0.1s linear;
+        }
+
+        .spirit-text {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff0055;
+            font-size: 12px;
+            letter-spacing: 2px;
+            opacity: 0.8;
+        }
+
+        /* --- MENU OVERLAY --- */
         #overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(11, 16, 22, 0.85);
+            backdrop-filter: blur(10px);
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 100;
             pointer-events: auto;
+            transition: opacity 0.3s;
         }
 
-        .menu-box {
+        .menu-content {
             text-align: center;
-            color: white;
-            background: rgba(10, 10, 10, 0.9);
-            border: 1px solid rgba(255, 0, 0, 0.4);
-            padding: 40px;
-            border-radius: 4px;
-            box-shadow: 0 0 40px rgba(255, 0, 0, 0.15);
-            max-width: 400px;
-            transform: skew(-2deg);
+            border: 2px solid #00f2ff;
+            padding: 50px;
+            background: rgba(0, 20, 30, 0.9);
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.2);
+            transform: skew(-5deg);
+            max-width: 500px;
         }
 
-        h1 { margin: 0; font-size: 40px; letter-spacing: 4px;
-             background: linear-gradient(to right, #fff, #ff3333);
-             -webkit-background-clip: text;
-             -webkit-text-fill-color: transparent;
-             font-style: italic;
+        h1 {
+            font-family: 'Permanent Marker', cursive;
+            font-size: 60px;
+            margin: 0;
+            color: #fff;
+            text-shadow: 4px 4px 0px #ff0055;
+            transform: rotate(-3deg);
         }
-        
+
+        .subtitle {
+            color: #00f2ff;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+            font-size: 14px;
+        }
+
         .btn {
-            background: linear-gradient(90deg, #aa0000, #ff4444);
+            background: #fff;
+            color: #000;
             border: none;
-            padding: 15px 50px;
-            color: white;
+            padding: 15px 40px;
             font-size: 20px;
-            font-weight: bold;
-            border-radius: 2px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
             cursor: pointer;
-            margin-top: 25px;
-            transition: transform 0.1s, box-shadow 0.2s;
-            font-family: 'Rajdhani', sans-serif;
             text-transform: uppercase;
             letter-spacing: 2px;
-            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+            transition: 0.2s;
+            clip-path: polygon(10% 0, 100% 0, 100% 80%, 90% 100%, 0 100%, 0 20%);
         }
 
-        .btn:active { transform: scale(0.95); }
-        .controls-info { color: #888; margin-top: 20px; font-size: 14px; line-height: 1.6; }
+        .btn:hover {
+            background: #00f2ff;
+            transform: scale(1.05);
+            box-shadow: 0 0 30px #00f2ff;
+        }
 
-        @media (hover: none) {
-            #attack-btn-visual { display: flex; }
-            .desktop-hint { display: none; }
+        .controls-hint {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            text-align: left;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .key-box {
+            border: 1px solid #444;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: #eee;
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        /* --- MOBILE CONTROLS --- */
+        #mobile-ui {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            z-index: 10;
+        }
+
+        .touch-btn {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            backdrop-filter: blur(5px);
+            user-select: none;
+        }
+
+        #btn-jump { bottom: 40px; left: 40px; }
+        #btn-slide { bottom: 40px; left: 140px; }
+        #btn-attack { bottom: 60px; right: 40px; border-color: #ff0055; background: rgba(255, 0, 85, 0.2); width: 90px; height: 90px;}
+
+        @media (max-width: 900px) {
+            #mobile-ui { display: block; }
+            .controls-hint { display: none; }
         }
     </style>
 </head>
@@ -157,62 +217,84 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
-        <div class="hud-top">
-            <div class="stat-box">👺 <span id="score-display">0</span></div>
-            <div class="stat-box">🌸 <span id="dist-display">0m</span></div>
+        <div class="spirit-bar-container">
+            <div id="spirit-fill"></div>
         </div>
-        <div id="attack-btn-visual">⚔️</div>
+        <div class="spirit-text">SPIRIT GAUGE</div>
+
+        <div class="hud-top">
+            <div class="stat-container">
+                <span class="stat-label">Score</span>
+                <span class="stat-value" id="score-val">0</span>
+            </div>
+            <div class="stat-container" style="align-items: flex-end;">
+                <span class="stat-label">Distance</span>
+                <span class="stat-value" id="dist-val">0m</span>
+            </div>
+        </div>
+
+        <div id="mobile-ui">
+            <div id="btn-jump" class="touch-btn">▲</div>
+            <div id="btn-slide" class="touch-btn">▼</div>
+            <div id="btn-attack" class="touch-btn">⚔️</div>
+        </div>
     </div>
 
     <div id="overlay">
-        <div class="menu-box">
-            <h1>SHADOW RONIN</h1>
-            <p style="color: #ff5555; margin-bottom: 20px; letter-spacing: 2px;">THE LAST SCROLL</p>
-            <p>⚔️ Slash Samurais & Collect Gold</p>
-            <p>🌪️ Double Jump & Dash</p>
-            <button class="btn" onclick="startGame()">BEGIN MISSION</button>
-            <div class="controls-info">
-                <span class="desktop-hint">
-                    SPACE = Jump (x2) • DOWN = Slide • F = Slash<br>
-                </span>
-                <span class="mobile-hint">
-                    Tap Left = Jump/Slide • Tap Right = Slash
-                </span>
+        <div class="menu-content">
+            <h1>SHADOW<br>RONIN</h1>
+            <div class="subtitle">CHAPTER 2: MOONLIT BAMBOO</div>
+            <button class="btn" onclick="startGame()">ENTER THE NIGHT</button>
+            
+            <div class="controls-hint">
+                <div>
+                    <span class="key-box">SPACE</span> Jump<br>
+                    <span class="key-box" style="margin-top:5px; display:inline-block">SPACE x2</span> Double Jump
+                </div>
+                <div style="text-align: right;">
+                    Attack <span class="key-box">F</span><br>
+                    Slide <span class="key-box" style="margin-top:5px; display:inline-block">DOWN</span>
+                </div>
             </div>
         </div>
     </div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    
-    // UI Elements
-    const scoreEl = document.getElementById('score-display');
-    const distEl = document.getElementById('dist-display');
-    const overlay = document.getElementById('overlay');
-    const attackBtn = document.getElementById('attack-btn-visual');
+    /** * GAME CONFIGURATION & ENGINE
+     * ---------------------------
+     * A completely rewritten engine focusing on smooth parallax, 
+     * readable colors, and fairer difficulty progression.
+     */
 
-    // State
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Opt for speed
+
+    // --- GLOBAL VARIABLES ---
     let animationId;
     let frames = 0;
     let score = 0;
     let distance = 0;
-    let gameSpeed = 6;
+    let gameSpeed = 5; // Reduced starting speed (was 6/8)
     let isGameOver = true;
-    let particles = [];
-    
-    // Configuration
-    const CFG = {
-        g: 0.6,
-        jump: -12,
-        doubleJump: -10,
-        groundBase: 120,
-        colors: {
-            skyTop: '#050005',
-            skyBot: '#200510',
-            moon: '#ffcccc',
-            ground: '#110505'
-        }
+    let spirit = 0; // 0 to 100
+
+    // --- INPUT STATE ---
+    const keys = {
+        space: false,
+        down: false,
+        f: false
+    };
+
+    // --- COLORS PALETTE (Better Contrast) ---
+    const PALETTE = {
+        bg: '#050810',
+        moon: '#e0f7fa',
+        bambooDark: '#0d1a12',
+        bambooLight: '#1a3322',
+        ground: '#080c12',
+        accent: '#00f2ff', // Cyan
+        danger: '#ff0055', // Neon Pink/Red
+        gold: '#ffd700'
     };
 
     function resize() {
@@ -222,405 +304,378 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // --- INPUT SYSTEM ---
+    // --- AUDIO SYSTEM (Placeholder for structure) ---
+    const sounds = {
+        jump: () => {}, // In a real game, add Audio() here
+        slash: () => {},
+        hit: () => {}
+    };
+
+    // --- INPUT LISTENERS ---
     window.addEventListener('keydown', e => {
-        if(e.code === 'Space' || e.code === 'ArrowUp') player.jump();
-        if(e.code === 'ArrowDown') player.slide(true);
-        if(e.code === 'KeyF') player.attack();
-    });
-    
-    window.addEventListener('keyup', e => {
-        if(e.code === 'ArrowDown') player.slide(false);
-    });
-
-    // Mobile Inputs
-    window.addEventListener('touchstart', e => {
-        if(isGameOver) return;
-        const touchX = e.touches[0].clientX;
-        const touchY = e.touches[0].clientY;
-        const width = window.innerWidth;
-
-        if (touchX > width * 0.7 && touchY > window.innerHeight * 0.6) {
-            player.attack();
-            attackBtn.style.transform = "scale(0.9)";
-        } else {
-            if (touchY < window.innerHeight / 2) player.jump();
-            else player.slide(true);
+        if (isGameOver && e.code === 'Space') startGame();
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            if(!keys.space) player.jump();
+            keys.space = true;
         }
-    }, {passive: false});
-
-    window.addEventListener('touchend', () => {
-        player.slide(false);
-        attackBtn.style.transform = "scale(1)";
+        if (e.code === 'ArrowDown') {
+            player.slide(true);
+            keys.down = true;
+        }
+        if (e.code === 'KeyF') {
+            player.attack();
+            keys.f = true;
+        }
     });
+
+    window.addEventListener('keyup', e => {
+        if (e.code === 'Space' || e.code === 'ArrowUp') keys.space = false;
+        if (e.code === 'ArrowDown') {
+            player.slide(false);
+            keys.down = false;
+        }
+        if (e.code === 'KeyF') keys.f = false;
+    });
+
+    // Touch Handling
+    const btnJump = document.getElementById('btn-jump');
+    const btnSlide = document.getElementById('btn-slide');
+    const btnAttack = document.getElementById('btn-attack');
+
+    btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); player.jump(); });
+    btnSlide.addEventListener('touchstart', (e) => { e.preventDefault(); player.slide(true); });
+    btnSlide.addEventListener('touchend', (e) => { e.preventDefault(); player.slide(false); });
+    btnAttack.addEventListener('touchstart', (e) => { e.preventDefault(); player.attack(); });
+
 
     // --- GAME OBJECTS ---
 
-    // 1. TERRAIN SYSTEM
-    let terrain = [];
-    
-    function initTerrain() {
-        terrain = [];
-        terrain.push({
-            x: 0,
-            y: canvas.height - CFG.groundBase,
-            w: canvas.width * 1.5,
-            h: CFG.groundBase
-        });
-    }
+    // 1. BACKGROUND (Parallax System)
+    const bgLayers = {
+        moon: { x: 0, y: 0 },
+        distant: [],
+        mid: [],
+        foreground: []
+    };
 
-    function updateTerrain() {
-        terrain.forEach(t => t.x -= gameSpeed);
-        if (terrain[0].x + terrain[0].w < -100) terrain.shift();
-
-        const last = terrain[terrain.length - 1];
-        if (last.x + last.w < canvas.width + 200) {
-            let gap = 0;
-            if (Math.random() > 0.7) gap = 120 + Math.random() * 120; // Slightly larger gaps
-
-            let newY = last.y;
-            if (Math.random() > 0.5) {
-                const change = (Math.random() * 100) - 50;
-                newY += change;
-                if(newY > canvas.height - 50) newY = canvas.height - 50;
-                if(newY < canvas.height - 350) newY = canvas.height - 350;
-            }
-
-            terrain.push({
-                x: last.x + last.w + gap,
-                y: newY,
-                w: 400 + Math.random() * 600,
-                h: canvas.height
+    function initBackground() {
+        bgLayers.distant = [];
+        bgLayers.mid = [];
+        // Populate Bamboo Forest
+        for(let i=0; i<20; i++) {
+            bgLayers.distant.push({
+                x: i * 150,
+                w: 10 + Math.random() * 20,
+                h: canvas.height,
+                speed: 0.2
+            });
+            bgLayers.mid.push({
+                x: i * 300,
+                w: 20 + Math.random() * 30,
+                h: canvas.height,
+                speed: 0.5
             });
         }
     }
 
-    // 2. NINJA PLAYER (Updated Animation)
+    function drawBackground() {
+        // Clear Sky
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#020205');
+        grad.addColorStop(1, '#0b1621');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+
+        // Giant Moon (Fixed position mostly)
+        ctx.shadowBlur = 60;
+        ctx.shadowColor = 'rgba(224, 247, 250, 0.3)';
+        ctx.fillStyle = PALETTE.moon;
+        ctx.beginPath();
+        ctx.arc(canvas.width - 200, 150, 80, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Distant Bamboo (Darkest)
+        ctx.fillStyle = PALETTE.bambooDark;
+        bgLayers.distant.forEach(b => {
+            b.x -= gameSpeed * b.speed;
+            if(b.x + b.w < -50) b.x = canvas.width + 50;
+            ctx.fillRect(b.x, 100, b.w, b.h);
+            // Segments
+            ctx.fillStyle = '#000';
+            for(let y=100; y<canvas.height; y+=60) ctx.fillRect(b.x, y, b.w, 2);
+            ctx.fillStyle = PALETTE.bambooDark;
+        });
+
+        // Mid Bamboo (Lighter)
+        ctx.fillStyle = PALETTE.bambooLight;
+        bgLayers.mid.forEach(b => {
+            b.x -= gameSpeed * b.speed;
+            if(b.x + b.w < -50) b.x = canvas.width + 100;
+            ctx.fillRect(b.x, 0, b.w, b.h);
+             // Leaves
+            if(frames % 60 === 0 && Math.random() > 0.5) {
+                // Should spawn leaf logic here (omitted for brevity)
+            }
+        });
+    }
+
+    // 2. PLAYER
     const player = {
         x: 100,
         y: 0,
         dy: 0,
-        w: 30,
-        h: 50, // Shorter hitbox for ninja crouch
+        w: 40,
+        h: 60,
         grounded: false,
         sliding: false,
         attacking: false,
         attackTimer: 0,
         jumpCount: 0,
-        
+        color: '#111',
+        scarfPoints: [],
+
         jump() {
-            // Feature: Double Jump
             if (this.grounded) {
-                this.dy = CFG.jump;
+                this.dy = -13; // Higher jump for better feel
                 this.grounded = false;
                 this.jumpCount = 1;
-                createParticles(this.x, this.y + this.h, 8, '#fff', 'dust');
+                createParticles(this.x, this.y + this.h, 10, '#888');
             } else if (this.jumpCount < 2) {
-                this.dy = CFG.doubleJump;
+                this.dy = -11;
                 this.jumpCount++;
-                // Double Jump Effect (Poof)
-                createParticles(this.x + 15, this.y + 40, 10, '#ddd', 'dust');
+                createParticles(this.x, this.y + this.h, 8, PALETTE.accent);
             }
         },
+
         slide(active) {
             this.sliding = active;
-        },
-        attack() {
-            if(!this.attacking) {
-                this.attacking = true;
-                this.attackTimer = 15;
-                // Dash effect
-                createParticles(this.x, this.y + 20, 5, 'rgba(255,255,255,0.5)', 'line');
-                checkCombat();
+            if (active) {
+                this.h = 30; // Shrink hitbox
+                if (this.grounded) createParticles(this.x, this.y+30, 1, '#555');
+            } else {
+                this.h = 60;
             }
         },
-        update() {
-            this.dy += CFG.g;
-            this.y += this.dy;
 
-            this.grounded = false;
-            
-            for(let t of terrain) {
-                if (this.x + this.w/2 > t.x && this.x + this.w/2 < t.x + t.w) {
-                    if (this.y + this.h >= t.y && this.y + this.h <= t.y + 35 && this.dy >= 0) {
-                        this.y = t.y - this.h;
-                        this.dy = 0;
-                        this.grounded = true;
-                        this.jumpCount = 0; // Reset jumps
-                    }
+        attack() {
+            if (!this.attacking) {
+                this.attacking = true;
+                this.attackTimer = 18; // Frames duration
+                sounds.slash();
+                
+                // Spirit Attack Check
+                if (spirit >= 100) {
+                    gameSpeed += 5; // Temporary burst
+                    setTimeout(() => { gameSpeed -= 5; }, 500);
+                    spirit = 0;
+                    createParticles(this.x, this.y, 30, PALETTE.accent, 'burst');
                 }
             }
+        },
 
-            if (this.y > canvas.height) gameOver();
+        update() {
+            // Physics
+            this.dy += 0.6; // Gravity
+            this.y += this.dy;
 
+            // Ground Collision
+            const groundLevel = canvas.height - 100;
+            if (this.y + this.h > groundLevel) {
+                this.y = groundLevel - this.h;
+                this.dy = 0;
+                this.grounded = true;
+                this.jumpCount = 0;
+            } else {
+                this.grounded = false;
+            }
+
+            // Attack Logic
             if (this.attacking) {
                 this.attackTimer--;
                 if(this.attackTimer <= 0) this.attacking = false;
             }
+
+            // Spirit Regen
+            if (spirit < 100 && frames % 10 === 0) {
+                spirit += 0.5;
+                document.getElementById('spirit-fill').style.width = spirit + '%';
+            }
+
+            // Scarf Physics (Visual)
+            this.scarfPoints.unshift({x: this.x, y: this.y + 10});
+            if(this.scarfPoints.length > 10) this.scarfPoints.pop();
         },
+
         draw() {
             ctx.save();
             ctx.translate(this.x + this.w/2, this.y + this.h/2);
-            
-            // Ninja Lean (Naruto Run style)
-            let tilt = 0.4; // Default forward lean
-            if(!this.grounded) tilt = 0.2; // Less lean in air
-            if(this.sliding) tilt = 1.2; // Extreme lean for slide
-            ctx.rotate(tilt);
 
-            // Styling
-            ctx.strokeStyle = '#222'; // Ninja Suit Dark
-            ctx.fillStyle = '#111';
-            ctx.lineWidth = 4;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-
-            // Animation Cycle
-            const runCycle = frames * 0.4; // Faster steps
-            
-            // --- SCARF (New Feature) ---
-            // Draws a trailing scarf that reacts to movement
+            // Scarf Drawing (Trail)
             ctx.beginPath();
-            ctx.strokeStyle = '#ff0000';
-            ctx.lineWidth = 3;
-            const scarfBaseX = -5;
-            const scarfBaseY = -15;
-            ctx.moveTo(scarfBaseX, scarfBaseY);
-            
-            // Sine wave trail
-            for(let i=0; i<5; i++) {
-                const tx = scarfBaseX - (i * 10) - (gameSpeed * i * 0.5); // Trails behind
-                const ty = scarfBaseY + Math.sin(frames * 0.2 + i) * 10 + (this.dy * 2); 
-                ctx.lineTo(tx, ty);
-            }
+            ctx.strokeStyle = PALETTE.danger;
+            ctx.lineWidth = 4;
+            ctx.moveTo(-10, -15); // Anchor at neck
+            this.scarfPoints.forEach((p, i) => {
+                const relX = (p.x - this.x - this.w/2) - (gameSpeed * i); // Trail behind
+                const relY = (p.y - this.y - this.h/2) + Math.sin(frames*0.5 + i)*5;
+                ctx.lineTo(relX, relY);
+            });
             ctx.stroke();
 
-            // Reset for Body
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 4;
-
-            // --- BODY ---
-            ctx.beginPath();
-            ctx.moveTo(0, -10);
-            ctx.lineTo(0, 10);
-            ctx.stroke();
-
-            // --- HEAD ---
-            ctx.beginPath();
-            ctx.arc(0, -15, 7, 0, Math.PI*2);
-            ctx.fillStyle = '#111';
-            ctx.fill();
-            // Headband knot
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(-6, -18, 12, 3);
-            // Eye (White Ninja Eye)
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.moveTo(3, -15);
-            ctx.lineTo(7, -13); 
-            ctx.lineTo(7, -17);
-            ctx.fill();
-
-            // --- LEGS (Fixed Logic) ---
-            // For running RIGHT:
-            // Right Leg: Math.sin(cycle)
-            // Left Leg: Math.sin(cycle + PI)
-            
-            const legL_angle = this.grounded ? Math.cos(runCycle) * 0.8 : 0.5;
-            const legR_angle = this.grounded ? Math.cos(runCycle + Math.PI) * 0.8 : -0.8;
-
-            // Draw Limb needs to handle direction. 
-            // In canvas rotation 0 is down. + is Left (if rotated 0.4 rad right).
-            // We want knee to bend BACK (Left on screen).
-            
-            drawNinjaLeg(ctx, 0, 10, legL_angle);
-            drawNinjaLeg(ctx, 0, 10, legR_angle);
-
-            // --- ARMS ---
-            // Naruto run: Arms trail behind
-            const armOffset = this.attacking ? -2.0 : -1.2; // Fixed back position
-            const sway = Math.sin(runCycle) * 0.3;
-            
-            drawArm(ctx, 0, -8, armOffset + sway, 12, 12, this.attacking);
-
-            // --- SWORD FLASH ---
-            if(this.attacking) {
-                ctx.rotate(-tilt); // Unrotate for the slash visual
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
+            // Ninja Body
+            if (this.sliding) {
+                ctx.rotate(-0.5); // Tilt back when sliding
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-20, 0, 50, 20); // Horizontal body
+            } else {
+                // Running Lean
+                const lean = this.grounded ? 0.2 : 0.4;
+                ctx.rotate(lean);
+                
+                // Torso
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-15, -25, 30, 50);
+                
+                // Head
                 ctx.beginPath();
-                // A large crescent slash
-                ctx.arc(20, 0, 45, -1.0, 1.0);
+                ctx.arc(0, -35, 12, 0, Math.PI*2);
+                ctx.fill();
+
+                // Eye (Glowing)
+                ctx.fillStyle = '#fff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#fff';
+                ctx.fillRect(2, -38, 8, 4);
+                ctx.shadowBlur = 0;
+                
+                // Headband
+                ctx.fillStyle = PALETTE.danger;
+                ctx.fillRect(-10, -42, 20, 4);
+            }
+
+            // Sword Slash Visual
+            if (this.attacking) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(15, 0, 60, -1, 1); // Arc slash
                 ctx.stroke();
                 
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = 'cyan';
-                ctx.strokeStyle = 'rgba(200, 255, 255, 0.9)';
+                ctx.globalAlpha = 0.5;
+                ctx.strokeStyle = PALETTE.accent;
+                ctx.lineWidth = 8;
                 ctx.stroke();
-                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
             }
 
             ctx.restore();
         }
     };
 
-    function drawNinjaLeg(ctx, ox, oy, angle) {
-        const len1 = 14;
-        const len2 = 14;
-        
-        // Thigh
-        const kx = ox + Math.sin(angle) * len1;
-        const ky = oy + Math.cos(angle) * len1;
-        
-        // Knee Bend Logic:
-        // When running right, the shin should lag behind or tuck up.
-        // We force the bend to be "more negative" (counter-clockwise/left) relative to thigh
-        
-        const bend = angle + 1.5; // Sharp knee bend for ninja run
-        
-        const fx = kx + Math.sin(bend) * len2;
-        const fy = ky + Math.cos(bend) * len2;
+    // 3. ENEMIES & OBSTACLES
+    let enemies = [];
+    const ENEMY_TYPES = ['SAMURAI', 'YOKAI', 'SPIKES'];
 
-        ctx.strokeStyle = '#222';
-        ctx.beginPath();
-        ctx.moveTo(ox, oy);
-        ctx.lineTo(kx, ky);
-        ctx.lineTo(fx, fy);
-        ctx.stroke();
-        
-        // Foot
-        ctx.fillStyle = '#444'; // Tabi boots
-        ctx.fillRect(fx-2, fy-2, 4, 4);
-    }
+    function spawnEnemy() {
+        if (frames % 120 === 0) { // Approx every 2 seconds
+            // 20% Chance for nothing, give breathing room
+            if (Math.random() > 0.8) return;
 
-    function drawArm(ctx, ox, oy, angle, len1, len2, hasSword) {
-        const ex = ox + Math.sin(angle) * len1;
-        const ey = oy + Math.cos(angle) * len1;
-        
-        const hx = ex + Math.sin(angle - 0.2) * len2;
-        const hy = ey + Math.cos(angle - 0.2) * len2;
-
-        ctx.beginPath();
-        ctx.moveTo(ox, oy);
-        ctx.lineTo(ex, ey);
-        ctx.lineTo(hx, hy);
-        ctx.stroke();
-
-        if (hasSword) {
-            // Sword in hand
-            ctx.save();
-            ctx.translate(hx, hy);
-            ctx.rotate(angle + 2); // Point sword forward
-            ctx.beginPath();
-            ctx.strokeStyle = '#eee';
-            ctx.lineWidth = 2;
-            ctx.moveTo(0,0);
-            ctx.lineTo(0, -40); // Long katana
-            ctx.stroke();
-            // Handle
-            ctx.strokeStyle = '#a00';
-            ctx.beginPath();
-            ctx.moveTo(0,0);
-            ctx.lineTo(0, -8);
-            ctx.stroke();
-            ctx.restore();
-        }
-    }
-
-
-    // 3. ENTITY MANAGER
-    let entities = [];
-
-    function spawnEntities() {
-        if (frames % 60 !== 0) return;
-        const target = terrain[terrain.length - 1];
-        if (!target) return;
-        
-        const r = Math.random();
-        
-        if (r < 0.3) {
-            // Gold Coins
-            for(let i=0; i<3; i++) {
-                entities.push({
-                    type: 'COIN',
-                    x: target.x + 50 + (i*40),
-                    y: target.y - 50 - (Math.sin(i)*20),
-                    w: 20, h: 20,
-                    active: true,
-                    floatOffset: Math.random() * 10
-                });
-            }
-        } else if (r > 0.6) {
-            // Samurai Enemy
-            entities.push({
-                type: 'ENEMY',
-                x: target.x + Math.random() * (target.w - 50),
-                y: target.y - 50,
-                w: 40, h: 50,
-                active: true
+            let type = 'SAMURAI';
+            if (Math.random() > 0.6) type = 'YOKAI'; // Flying enemy
+            
+            const groundLevel = canvas.height - 100;
+            
+            enemies.push({
+                type: type,
+                x: canvas.width + 50,
+                y: type === 'YOKAI' ? groundLevel - 70 - Math.random()*50 : groundLevel - 50,
+                w: type === 'SAMURAI' ? 40 : 30,
+                h: type === 'SAMURAI' ? 50 : 30,
+                active: true,
+                floatOffset: Math.random() * 100
             });
         }
     }
 
-    function updateEntities() {
-        entities.forEach(e => {
+    function updateEnemies() {
+        enemies.forEach(e => {
             e.x -= gameSpeed;
-            if(e.type === 'COIN') {
-                e.y += Math.sin((frames + e.floatOffset) * 0.1) * 0.5;
-            }
-        });
-
-        entities = entities.filter(e => e.x > -100 && e.active);
-
-        entities.forEach(e => {
-            if (!e.active) return;
             
-            // Collision
-            if (player.x < e.x + e.w && player.x + player.w > e.x &&
-                player.y < e.y + e.h && player.y + player.h > e.y) {
+            // Yokai Bobbing motion
+            if (e.type === 'YOKAI') {
+                e.y += Math.sin((frames + e.floatOffset) * 0.05) * 1.5;
+            }
+
+            // Collision Detection
+            if (e.active && 
+                player.x < e.x + e.w - 10 && 
+                player.x + player.w > e.x + 10 &&
+                player.y < e.y + e.h - 10 && 
+                player.y + player.h > e.y + 10) {
                 
-                if (e.type === 'COIN') {
+                if (player.attacking) {
+                    // Successful Kill
                     e.active = false;
-                    score += 10;
-                    scoreEl.innerText = score;
-                    createParticles(e.x, e.y, 8, '#FFD700', 'spark');
-                } else if (e.type === 'ENEMY') {
-                    if (player.attacking) {
-                        // Kill enemy (incidental contact while attacking)
-                        e.active = false;
-                        score += 50;
-                        createParticles(e.x+20, e.y+20, 15, '#aa0000', 'blood');
-                    } else {
-                        gameOver();
-                    }
+                    createParticles(e.x, e.y, 20, e.type === 'YOKAI' ? '#aaddff' : '#990000', 'burst');
+                    score += 100;
+                    spirit = Math.min(spirit + 10, 100);
+                    // Hit stop effect (tiny freeze for impact)
+                    // (Omitted for code simplicity, but visual shake added)
+                    screenShake = 5;
+                } else {
+                    // Player Hit
+                    gameOver();
                 }
+            }
+        });
+
+        // Cleanup
+        enemies = enemies.filter(e => e.x > -100);
+    }
+
+    function drawEnemies() {
+        enemies.forEach(e => {
+            if (!e.active) return;
+
+            if (e.type === 'SAMURAI') {
+                // Samurai Silhouette
+                ctx.fillStyle = '#220000'; // Dark red/brown
+                ctx.fillRect(e.x, e.y, e.w, e.h);
+                // Armor highlights
+                ctx.fillStyle = '#550000';
+                ctx.fillRect(e.x+5, e.y+5, e.w-10, 15); // Chest
+                // Eyes
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(e.x+10, e.y+10, 5, 2);
+                ctx.fillRect(e.x+25, e.y+10, 5, 2);
+            } else if (e.type === 'YOKAI') {
+                // Ghost Fire
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'cyan';
+                ctx.fillStyle = '#ccffff';
+                ctx.beginPath();
+                ctx.arc(e.x + e.w/2, e.y + e.h/2, 15, 0, Math.PI*2);
+                ctx.fill();
+                // Trail
+                ctx.beginPath();
+                ctx.moveTo(e.x + e.w/2, e.y + e.h/2);
+                ctx.lineTo(e.x + e.w + 30, e.y + e.h/2 - 10);
+                ctx.lineTo(e.x + e.w + 20, e.y + e.h/2 + 10);
+                ctx.fill();
+                ctx.shadowBlur = 0;
             }
         });
     }
 
-    function checkCombat() {
-        const reach = 100; // Increased katana range
-        entities.forEach(e => {
-            if (e.type === 'ENEMY' && e.active) {
-                const dist = Math.abs((player.x + 20) - (e.x + 20));
-                const yDist = Math.abs(player.y - e.y);
-                
-                if (dist < reach && yDist < 60) {
-                    e.active = false;
-                    createParticles(e.x + 20, e.y + 20, 20, '#ff0000', 'blood');
-                    score += 50;
-                    scoreEl.innerText = score;
-                }
-            }
-        });
-    }
-
-    // 4. PARTICLES (Added Types: Spark, Blood, Sakura, Dust, Line)
-    function createParticles(x, y, count, color, type = 'spark') {
+    // 4. PARTICLES ENGINE
+    let particles = [];
+    function createParticles(x, y, count, color, type='spark') {
         for(let i=0; i<count; i++) {
             particles.push({
                 x: x, y: y,
-                vx: (Math.random() - 0.5) * (type === 'line' ? 20 : 10),
+                vx: (Math.random() - 0.5) * 10,
                 vy: (Math.random() - 0.5) * 10,
                 life: 1.0,
                 color: color,
@@ -629,225 +684,108 @@
         }
     }
 
-    // New: Sakura Rain Generator
-    function spawnSakura() {
-        if (frames % 10 === 0) { // Frequent
-            particles.push({
-                x: canvas.width + Math.random() * 100,
-                y: Math.random() * canvas.height,
-                vx: -3 - Math.random() * 2, // Drift left
-                vy: 1 + Math.random(), // Fall down
-                life: 2.0, // Long life
-                color: '#ffb7b2', // Pink
-                type: 'sakura',
-                size: Math.random() * 4 + 2
-            });
-        }
-    }
-
     function drawParticles() {
         particles.forEach((p, i) => {
             p.x += p.vx;
             p.y += p.vy;
-            p.life -= (p.type === 'sakura' ? 0.005 : 0.05); // Sakura fades slow
-            
-            // Movement logic varies by type
-            if (p.type === 'sakura') {
-                p.x -= gameSpeed * 0.5; // Move with world slightly
-                p.x += Math.sin(frames * 0.05 + p.y) * 0.5; // Flutter
-            } else if (p.type === 'line') {
-                p.vx *= 0.9; // Friction
-            }
+            p.life -= 0.03;
+            p.vy += 0.2; // Gravity for particles
 
             ctx.globalAlpha = p.life;
             ctx.fillStyle = p.color;
-
-            if (p.type === 'sakura') {
-                // Draw Petal
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-                ctx.fill();
-            } else if (p.type === 'line') {
-                ctx.fillRect(p.x, p.y, 20, 2); // Horizontal Speed line
-            } else {
-                ctx.fillRect(p.x, p.y, 3, 3);
-            }
-            
-            ctx.globalAlpha = 1.0;
+            ctx.fillRect(p.x, p.y, 3, 3);
+            ctx.globalAlpha = 1;
 
             if(p.life <= 0) particles.splice(i, 1);
         });
     }
 
-    // 5. BACKGROUND (Sakura Theme)
-    let bgs = { stars: [], mountains: [], pagodas: [] };
-
-    function initBackground() {
-        for(let i=0; i<30; i++) bgs.stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height/2, s: Math.random()*2});
+    // 5. GROUND
+    let groundOffset = 0;
+    function drawGround() {
+        ctx.fillStyle = PALETTE.ground;
+        const groundY = canvas.height - 100;
+        ctx.fillRect(0, groundY, canvas.width, 100);
         
-        for(let i=0; i<8; i++) {
-            bgs.mountains.push({x: i * 350, w: 400, h: 200 + Math.random()*300});
-            // Add some pagodas/temples in background
-            if (i % 3 === 0) bgs.pagodas.push({x: i * 350 + 100, w: 40, h: 100});
+        // Ground Texture (scrolling)
+        ctx.fillStyle = '#111822';
+        groundOffset -= gameSpeed;
+        if(groundOffset < -50) groundOffset = 0;
+        
+        for(let i=groundOffset; i<canvas.width; i+=50) {
+            ctx.fillRect(i, groundY, 40, 10); // Stones
         }
+        
+        // Top border line
+        ctx.fillStyle = '#00f2ff';
+        ctx.fillRect(0, groundY, canvas.width, 2);
     }
 
-    function drawBackground() {
-        // SKY
-        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        grad.addColorStop(0, CFG.colors.skyTop);
-        grad.addColorStop(1, CFG.colors.skyBot);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0,canvas.width, canvas.height);
+    // --- MAIN GAME LOOP ---
+    let screenShake = 0;
 
-        // MOON
-        ctx.shadowBlur = 50;
-        ctx.shadowColor = '#ff5555'; // Blood Moon
-        ctx.fillStyle = '#ffcccc';
-        ctx.beginPath();
-        ctx.arc(canvas.width - 150, 100, 50, 0, Math.PI*2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // MOUNTAINS
-        ctx.fillStyle = '#1a0505'; // Dark Red tint
-        bgs.mountains.forEach(m => {
-            m.x -= gameSpeed * 0.1;
-            if(m.x + m.w < 0) m.x = canvas.width;
-            
-            ctx.beginPath();
-            ctx.moveTo(m.x, canvas.height);
-            ctx.lineTo(m.x + m.w/2, canvas.height - m.h);
-            ctx.lineTo(m.x + m.w, canvas.height);
-            ctx.fill();
-        });
-
-        // PAGODAS (Silhouette)
-        ctx.fillStyle = '#0a0000';
-        bgs.pagodas.forEach(p => {
-            p.x -= gameSpeed * 0.2;
-            if (p.x < -100) p.x = canvas.width + 100;
-            
-            // Simple Pagoda Shape
-            const cx = p.x;
-            const base = canvas.height - 50;
-            ctx.beginPath();
-            ctx.rect(cx - 15, base - 80, 30, 80); // Trunk
-            // Roofs
-            ctx.moveTo(cx - 40, base - 30); ctx.lineTo(cx + 40, base - 30); ctx.lineTo(cx, base - 50);
-            ctx.moveTo(cx - 35, base - 60); ctx.lineTo(cx + 35, base - 60); ctx.lineTo(cx, base - 80);
-            ctx.moveTo(cx - 25, base - 90); ctx.lineTo(cx + 25, base - 90); ctx.lineTo(cx, base - 105);
-            ctx.fill();
-        });
-    }
-
-    function drawEntities() {
-        entities.forEach(e => {
-            if(!e.active) return;
-            if(e.type === 'COIN') {
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = 'gold';
-                ctx.fillStyle = '#FFD700';
-                ctx.beginPath();
-                // Square hole coin (Yen style)
-                ctx.arc(e.x, e.y, 8, 0, Math.PI*2);
-                ctx.fill();
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.rect(e.x-2, e.y-2, 4, 4);
-                ctx.fill();
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.shadowBlur = 0;
-            } else if (e.type === 'ENEMY') {
-                // Samurai Silhouette
-                ctx.fillStyle = '#440000'; // Dark Red Armor
-                ctx.fillRect(e.x, e.y, e.w, e.h);
-                // Horns
-                ctx.beginPath();
-                ctx.moveTo(e.x + 5, e.y); ctx.lineTo(e.x - 5, e.y - 10);
-                ctx.moveTo(e.x + 35, e.y); ctx.lineTo(e.x + 45, e.y - 10);
-                ctx.strokeStyle = '#440000';
-                ctx.stroke();
-                // Glowing eyes
-                ctx.fillStyle = '#ffaa00';
-                ctx.fillRect(e.x + 10, e.y + 15, 6, 2);
-                ctx.fillRect(e.x + 24, e.y + 15, 6, 2);
-                
-                // Spear/Weapon
-                ctx.strokeStyle = '#888';
-                ctx.beginPath();
-                ctx.moveTo(e.x - 10, e.y + e.h);
-                ctx.lineTo(e.x + e.w + 10, e.y - 10);
-                ctx.stroke();
-            }
-        });
-    }
-
-    function drawTerrain() {
-        ctx.fillStyle = '#050101'; 
-        ctx.beginPath();
-        terrain.forEach(t => {
-            ctx.rect(t.x, t.y, t.w, t.h);
-            // Grass/Snow on top
-            ctx.fillStyle = '#301010';
-            ctx.fillRect(t.x, t.y, t.w, 8);
-            ctx.fillStyle = '#050101';
-        });
-        ctx.fill();
-    }
-
-    // --- MAIN LOOP ---
     function loop() {
         if(isGameOver) return;
 
-        spawnSakura(); // New Feature
-
-        updateTerrain();
-        spawnEntities();
-        updateEntities();
+        // Logic
         player.update();
+        updateEnemies();
         
         distance += gameSpeed * 0.05;
-        distEl.innerText = Math.floor(distance) + "m";
-        if(gameSpeed < 22) gameSpeed += 0.005;
+        document.getElementById('dist-val').innerText = Math.floor(distance) + "m";
+        document.getElementById('score-val').innerText = score;
 
-        // Draw
-        ctx.clearRect(0,0,canvas.width, canvas.height);
+        // Speed Progression (Slower ramp up)
+        if (gameSpeed < 18) gameSpeed += 0.001; 
+
+        // Drawing
+        ctx.clearRect(0,0, canvas.width, canvas.height);
         
+        if(screenShake > 0) {
+            ctx.save();
+            ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+            screenShake *= 0.9;
+            if(screenShake < 0.5) screenShake = 0;
+        }
+
         drawBackground();
-        drawTerrain();
-        drawEntities();
+        drawGround();
+        spawnEnemy();
+        drawEnemies();
         player.draw();
         drawParticles();
-        
-        // Vignette
-        const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, canvas.height/2, canvas.width/2, canvas.height/2, canvas.height);
-        grad.addColorStop(0, 'rgba(0,0,0,0)');
-        grad.addColorStop(1, 'rgba(50,0,0,0.6)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        if(screenShake > 0) ctx.restore();
+
+        // Foreground Effect (Speed Lines at high speed)
+        if(gameSpeed > 12) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            for(let i=0; i<5; i++) {
+                const lx = Math.random() * canvas.width;
+                const ly = Math.random() * canvas.height;
+                ctx.fillRect(lx, ly, 100, 2);
+            }
+        }
 
         frames++;
         animationId = requestAnimationFrame(loop);
     }
 
-    // --- GAME CONTROL ---
+    // --- STATE MANAGEMENT ---
     function startGame() {
         isGameOver = false;
         score = 0;
         distance = 0;
-        frames = 0;
-        gameSpeed = 8;
+        gameSpeed = 5; // Reset to slow speed
+        spirit = 0;
+        enemies = [];
+        particles = [];
         player.y = 0;
         player.dy = 0;
-        entities = [];
-        terrain = [];
-        particles = [];
         
-        scoreEl.innerText = "0";
-        overlay.style.display = 'none';
+        document.getElementById('overlay').style.opacity = '0';
+        setTimeout(() => { document.getElementById('overlay').style.display = 'none'; }, 300);
         
-        initTerrain();
         initBackground();
         loop();
     }
@@ -855,14 +793,16 @@
     function gameOver() {
         isGameOver = true;
         cancelAnimationFrame(animationId);
+        
+        const overlay = document.getElementById('overlay');
         overlay.style.display = 'flex';
-        document.querySelector('.menu-box h1').innerText = "MISSION FAILED";
-        document.querySelector('.menu-box p').innerText = `Honor: ${score} | Distance: ${Math.floor(distance)}m`;
-    }
+        // Need to reflow to allow transition
+        setTimeout(() => { overlay.style.opacity = '1'; }, 10);
 
-    resize();
-    initBackground();
-    drawBackground();
+        document.querySelector('.menu-content h1').innerHTML = "MISSION<br>FAILED";
+        document.querySelector('.menu-content .subtitle').innerText = `HONOR: ${score} | DISTANCE: ${Math.floor(distance)}m`;
+        document.querySelector('.menu-content .btn').innerText = "TRY AGAIN";
+    }
 
 </script>
 </body>
