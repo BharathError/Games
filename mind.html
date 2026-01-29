@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MIND LOCK // MOBILE BREACH</title>
+    <style>
+        :root {
+            --bg: #050510;
+            --grid: #0a0a1a;
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff0055;
+            --neon-gold: #ffd700;
+            --neon-green: #00ff66;
+            --locked: #ff3333;
+            --text: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden; /* Prevent scroll on mobile */
+            touch-action: none; /* Disable default touch actions */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* --- HUD --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+        }
+
+        .hud-panel {
+            text-align: center;
+        }
+
+        .stat-label { font-size: 0.7rem; color: #888; letter-spacing: 1px; }
+        .stat-value { font-size: 1.4rem; color: var(--neon-blue); font-weight: bold; text-shadow: 0 0 5px var(--neon-blue); }
+        .warning { color: var(--neon-pink) !important; text-shadow: 0 0 5px var(--neon-pink) !important; }
+
+        /* --- Canvas Container --- */
+        #game-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+            border: 1px solid #222;
+            background: var(--grid);
+            max-width: 95vw;
+        }
+
+        /* --- Notification Popups --- */
+        .popup-msg {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--neon-gold);
+            font-size: 1.5rem;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            text-shadow: 0 0 10px var(--neon-gold);
+            z-index: 15;
+            white-space: nowrap;
+        }
+        .popup-active { opacity: 1; top: 45%; }
+
+        /* --- Menus --- */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 16, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            backdrop-filter: blur(8px);
+        }
+
+        .hidden { display: none !important; }
+
+        h1 {
+            font-size: 3rem; margin-bottom: 10px;
+            text-shadow: 2px 2px var(--neon-pink), -2px -2px var(--neon-blue);
+        }
+
+        p { color: #aaa; margin-bottom: 30px; text-align: center; max-width: 80%; line-height: 1.5; }
+
+        .btn {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            padding: 20px 60px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        
+        .btn:active { background: var(--neon-blue); color: black; }
+        
+        #timer-bar {
+            position: absolute; bottom: 0; left: 0; height: 4px;
+            background: var(--neon-pink); width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        /* Scanline Effect */
+        .scanline {
+            width: 100%; height: 100px; z-index: 99;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0, 243, 255, 0.1) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0.1; position: absolute; bottom: 100%;
+            pointer-events: none;
+            animation: scanline 10s linear infinite;
+        }
+        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100px; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanline"></div>
+
+    <div id="ui-layer">
+        <div class="hud-panel">
+            <div class="stat-label">SECURITY LEVEL</div>
+            <div class="stat-value" id="level-display">1</div>
+        </div>
+        <div class="hud-panel">
+            <div class="stat-label">MOVES LEFT</div>
+            <div class="stat-value" id="moves-display">--</div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="popup" class="popup-msg">FIREWALL BREACHED</div>
+        
+        <div id="overlay">
+            <h1 id="title-text">MIND LOCK</h1>
+            <p id="desc-text">MOBILE PROTOCOL INITIATED.<br><br>Tap to Rotate.<br>Double Tap Red Tiles to Hack.<br>Connect Power to Output.</p>
+            <div id="stars-display" style="font-size: 2rem; color: gold; margin-bottom: 20px;"></div>
+            <button class="btn" id="action-btn">START SYSTEM</button>
+            <button class="btn" id="reset-btn" style="font-size: 0.8rem; padding: 10px; margin-top: 20px; border-color: #555; color: #555;">RESET DATA</button>
+        </div>
+        <div id="timer-bar"></div>
+    </div>
+
+<script>
+/**
+ * ENGINE: Mobile Breach Edition
+ * Features: Touch scaling, LocalStorage, Double-Tap Logic, Fog of War
+ */
+
+// Constants
+const N = 1, E = 2, S = 4, W = 8;
+const COLORS = {
+    off: '#1a2a3a',
+    locked: '#ff3333',
+    power: '#ffd700',
+    source: '#00f3ff',
+    bg: '#0a0a1a'
+};
+
+// --- DATA MANAGER (Save/Load) ---
+const SaveSystem = {
+    save: (level, stars) => {
+        localStorage.setItem('mindlock_level', level);
+        localStorage.setItem('mindlock_stars', stars);
+    },
+    load: () => {
+        return {
+            level: parseInt(localStorage.getItem('mindlock_level')) || 1,
+            stars: parseInt(localStorage.getItem('mindlock_stars')) || 0
+        };
+    },
+    reset: () => {
+        localStorage.clear();
+        location.reload();
+    }
+};
+
+// --- TILE CLASS ---
+class Tile {
+    constructor(c, r) {
+        this.c = c;
+        this.r = r;
+        this.connections = 0; // The actual shape
+        this.rotation = 0;
+        
+        this.isLocked = false; // "Firewall" - requires double tap
+        this.health = 1; // 2 hits to unlock if locked
+        
+        this.isPowered = false;
+        this.isSource = false;
+        this.isGoal = false;
+        this.isVisible = false; // For Fog of War
+    }
+
+    rotate() {
+        // Logic: North->East->South->West
+        // Bits: 1->2, 2->4, 4->8, 8->1
+        let newConns = 0;
+        if (this.connections & N) newConns |= E;
+        if (this.connections & E) newConns |= S;
+        if (this.connections & S) newConns |= W;
+        if (this.connections & W) newConns |= N;
+        this.connections = newConns;
+        this.rotation = (this.rotation + 1) % 4;
+    }
+
+    randomize() {
+        let r = Math.floor(Math.random() * 4);
+        for(let i=0; i<r; i++) this.rotate();
+    }
+}
+
+// --- GAME LOGIC ---
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        // Settings
+        this.cols = 5; // Smaller grid for mobile readability
+        this.rows = 6;
+        this.tileSize = 60; // Will be calculated dynamically
+        
+        // State
+        const saved = SaveSystem.load();
+        this.level = saved.level;
+        this.totalStars = saved.stars;
+        this.moves = 0;
+        this.maxMoves = 0;
+        this.isPlaying = false;
+        this.grid = [];
+        this.sourceTile = null;
+        this.goalTile = null;
+
+        // Touch Handling
+        this.lastTapTime = 0;
+        this.lastTapTile = null;
+
+        // UI Binding
+        this.bindEvents();
+        this.resize();
+    }
+
+    bindEvents() {
+        window.addEventListener('resize', () => this.resize());
+        
+        // Mouse/Touch
+        this.canvas.addEventListener('pointerdown', (e) => this.handleInput(e));
+        
+        document.getElementById('action-btn').addEventListener('click', () => this.startLevel());
+        document.getElementById('reset-btn').addEventListener('click', () => SaveSystem.reset());
+    }
+
+    resize() {
+        // Advanced Mobile Scaling: Fit grid into available space
+        const container = document.getElementById('game-container');
+        const maxW = container.clientWidth;
+        const maxH = container.clientHeight;
+
+        // Determine optimal tile size
+        const margin = 20;
+        const wSize = Math.floor((maxW - margin) / this.cols);
+        const hSize = Math.floor((maxH - margin) / this.rows);
+        
+        this.tileSize = Math.min(wSize, hSize, 100); // Max 100px
+        
+        this.canvas.width = this.cols * this.tileSize;
+        this.canvas.height = this.rows * this.tileSize;
+        
+        if(!this.isPlaying && this.grid.length > 0) this.draw(); // Redraw if paused
+    }
+
+    startLevel() {
+        document.getElementById('overlay').classList.add('hidden');
+        this.isPlaying = true;
+        this.moves = Math.floor(15 + (this.level * 2));
+        this.maxMoves = this.moves;
+        
+        this.generateLevel();
+        this.updateHUD();
+        this.resize(); // Ensure fit
+        this.loop();
+    }
+
+    generateLevel() {
+        this.grid = [];
+        for(let r=0; r<this.rows; r++) {
+            for(let c=0; c<this.cols; c++) {
+                this.grid.push(new Tile(c, r));
+            }
+        }
+
+        // 1. Create a guaranteed path (Random Walk)
+        let c = 0, r = Math.floor(Math.random()*this.rows);
+        this.sourceTile = this.getTile(c, r);
+        this.sourceTile.isSource = true;
+        
+        let path = [this.sourceTile];
+        let steps = 0;
+        
+        while(c < this.cols - 1 || steps < 5) {
+            // Bias movement: 50% East, 25% Up, 25% Down
+            let move = Math.random();
+            if(move < 0.5 && c < this.cols - 1) c++;
+            else if(move < 0.75 && r > 0) r--;
+            else if(move < 1.0 && r < this.rows - 1) r++;
+            
+            // Prevent backtracking immediately
+            let t = this.getTile(c, r);
+            if(path.indexOf(t) === -1) {
+                path.push(t);
+                steps++;
+            }
+            if(c === this.cols -1 && steps > this.cols) break;
+        }
+        
+        this.goalTile = path[path.length-1];
+        this.goalTile.isGoal = true;
+
+        // 2. Set connections for path
+        for(let i=0; i<path.length-1; i++) {
+            let curr = path[i];
+            let next = path[i+1];
+            if(next.r < curr.r) { curr.connections |= N; next.connections |= S; }
+            if(next.r > curr.r) { curr.connections |= S; next.connections |= N; }
+            if(next.c > curr.c) { curr.connections |= E; next.connections |= W; }
+            if(next.c < curr.c) { curr.connections |= W; next.connections |= E; }
+        }
+
+        // 3. Fill junk & Add Firewalls (Locked Tiles)
+        this.grid.forEach(t => {
+            if(t.connections === 0) {
+                // Random shapes
+                const shapes = [3, 5, 6, 9, 10, 12, 15]; // Corners, lines, T
+                t.connections = shapes[Math.floor(Math.random()*shapes.length)];
+            }
+            t.randomize();
+
+            // Firewall mechanic: Level 3+ has locked tiles
+            if (this.level >= 3 && !t.isSource && !t.isGoal && Math.random() < 0.15) {
+                t.isLocked = true;
+                t.health = 2; // Needs 2 taps
+            }
+        });
+
+        this.calculatePower();
+    }
+
+    getTile(c, r) {
+        if(c<0 || c>=this.cols || r<0 || r>=this.rows) return null;
+        return this.grid[r * this.cols + c];
+    }
+
+    handleInput(e) {
+        if(!this.isPlaying) return;
+        
+        // Get coordinate within canvas
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const c = Math.floor(x / this.tileSize);
+        const r = Math.floor(y / this.tileSize);
+        const tile = this.getTile(c, r);
+
+        if(!tile) return;
+
+        // Double Tap Detection for Firewalls
+        const now = Date.now();
+        const isDoubleTap = (this.lastTapTile === tile && (now - this.lastTapTime) < 300);
+        this.lastTapTile = tile;
+        this.lastTapTime = now;
+
+        if (tile.isLocked) {
+            if (isDoubleTap) {
+                // Break firewall
+                tile.isLocked = false;
+                this.showPopup("FIREWALL DELETED", x, y);
+                this.moves--;
+            } else {
+                // Shake effect or sound could go here
+                this.showPopup("LOCKED - DOUBLE TAP", x, y);
+                return;
+            }
+        } else {
+            // Normal Rotate
+            tile.rotate();
+            this.moves--;
+        }
+
+        this.calculatePower();
+        this.updateHUD();
+
+        if (this.goalTile.isPowered) {
+            this.win();
+        } else if (this.moves <= 0) {
+            this.lose();
+        }
+    }
+
+    calculatePower() {
+        // Reset
+        this.grid.forEach(t => { t.isPowered = false; t.isVisible = false; });
+        
+        let queue = [this.sourceTile];
+        this.sourceTile.isPowered = true;
+        this.sourceTile.isVisible = true;
+
+        let processed = new Set();
+        
+        while(queue.length > 0) {
+            let t = queue.shift();
+            let idx = t.r * this.cols + t.c;
+            if(processed.has(idx)) continue;
+            processed.add(idx);
+
+            // Mark neighbors as visible (Fog of War mechanic)
+            let neighbors = [
+                { dir: N, tile: this.getTile(t.c, t.r-1), opp: S },
+                { dir: E, tile: this.getTile(t.c+1, t.r), opp: W },
+                { dir: S, tile: this.getTile(t.c, t.r+1), opp: N },
+                { dir: W, tile: this.getTile(t.c-1, t.r), opp: E }
+            ];
+
+            neighbors.forEach(n => {
+                if(n.tile) {
+                    // Fog Logic: If I am powered, I shed light on my neighbors
+                    n.tile.isVisible = true; 
+
+                    // Power Logic: Do we connect?
+                    if( (t.connections & n.dir) && (n.tile.connections & n.opp) ) {
+                        n.tile.isPowered = true;
+                        queue.push(n.tile);
+                    }
+                }
+            });
+        }
+    }
+
+    showPopup(text, x, y) {
+        const p = document.getElementById('popup');
+        p.innerText = text;
+        p.classList.remove('popup-active');
+        void p.offsetWidth; // trigger reflow
+        p.classList.add('popup-active');
+    }
+
+    updateHUD() {
+        const movesEl = document.getElementById('moves-display');
+        movesEl.innerText = this.moves;
+        if(this.moves <= 5) movesEl.classList.add('warning');
+        else movesEl.classList.remove('warning');
+        
+        document.getElementById('level-display').innerText = this.level;
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const ts = this.tileSize;
+        const half = ts/2;
+        const lineWidth = ts * 0.1;
+
+        this.grid.forEach(t => {
+            const cx = t.c * ts + half;
+            const cy = t.r * ts + half;
+
+            this.ctx.save();
+            this.ctx.translate(cx, cy);
+
+            // 1. Draw Background/Fog
+            // Fog of War: If not visible, draw dark box
+            if (!t.isVisible && !t.isLocked) {
+                this.ctx.globalAlpha = 0.3; // Dimmed
+            }
+
+            // 2. Draw Firewall Base (if locked)
+            if (t.isLocked) {
+                this.ctx.fillStyle = "rgba(255, 50, 50, 0.2)";
+                this.ctx.fillRect(-half+2, -half+2, ts-4, ts-4);
+                this.ctx.strokeStyle = COLORS.locked;
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(-half+5, -half+5, ts-10, ts-10);
+            }
+
+            // 3. Draw Connections
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = t.isPowered ? COLORS.power : (t.isLocked ? COLORS.locked : COLORS.off);
+            this.ctx.lineWidth = lineWidth;
+            this.ctx.lineCap = "round";
+            
+            // Glow
+            this.ctx.shadowBlur = t.isPowered ? 15 : 0;
+            this.ctx.shadowColor = t.isPowered ? COLORS.power : 'transparent';
+
+            if (t.connections & N) { this.ctx.moveTo(0,0); this.ctx.lineTo(0, -half); }
+            if (t.connections & E) { this.ctx.moveTo(0,0); this.ctx.lineTo(half, 0); }
+            if (t.connections & S) { this.ctx.moveTo(0,0); this.ctx.lineTo(0, half); }
+            if (t.connections & W) { this.ctx.moveTo(0,0); this.ctx.lineTo(-half, 0); }
+            this.ctx.stroke();
+
+            // 4. Draw Icons (Source/Goal)
+            this.ctx.shadowBlur = 0;
+            if (t.isSource) {
+                this.ctx.fillStyle = COLORS.source;
+                this.ctx.beginPath(); this.ctx.arc(0,0, ts*0.15, 0, Math.PI*2); this.ctx.fill();
+            }
+            if (t.isGoal) {
+                this.ctx.fillStyle = t.isPowered ? COLORS.power : COLORS.off;
+                this.ctx.fillRect(-ts*0.15, -ts*0.15, ts*0.3, ts*0.3);
+            }
+
+            // Lock Icon
+            if(t.isLocked) {
+                this.ctx.fillStyle = "#fff";
+                this.ctx.font = "bold 16px Arial";
+                this.ctx.textAlign = "center";
+                this.ctx.textBaseline = "middle";
+                this.ctx.fillText("🔒", 0, 0);
+            }
+
+            this.ctx.restore();
+        });
+    }
+
+    loop() {
+        if(!this.isPlaying) return;
+        this.draw();
+        requestAnimationFrame(() => this.loop());
+    }
+
+    win() {
+        this.isPlaying = false;
+        SaveSystem.save(this.level + 1, this.totalStars);
+        
+        document.getElementById('title-text').innerText = "SYSTEM BREACHED";
+        document.getElementById('title-text').style.color = COLORS.power;
+        document.getElementById('desc-text').innerHTML = `Access Granted.<br>Firewalls disabled.<br>Proceeding to Level ${this.level + 1}...`;
+        document.getElementById('action-btn').innerText = "NEXT LEVEL";
+        document.getElementById('overlay').classList.remove('hidden');
+        
+        this.level++;
+    }
+
+    lose() {
+        this.isPlaying = false;
+        document.getElementById('title-text').innerText = "ACCESS DENIED";
+        document.getElementById('title-text').style.color = COLORS.locked;
+        document.getElementById('desc-text').innerHTML = `Trace Complete.<br>Location Detected.<br>Try Again?`;
+        document.getElementById('action-btn').innerText = "RETRY BREACH";
+        document.getElementById('overlay').classList.remove('hidden');
+    }
+}
+
+// Start
+window.onload = () => new Game();
+
+</script>
+</body>
+</html>
