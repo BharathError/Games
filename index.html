@@ -38,7 +38,6 @@
             align-items: center;
             text-align: center;
             padding: 20px;
-            /* Using a reliable dark gradient pattern instead of an external image for reliability */
             background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
                         repeating-linear-gradient(45deg, #111 0px, #111 10px, #222 10px, #222 20px);
         }
@@ -68,7 +67,6 @@
             letter-spacing: 2px;
         }
 
-        /* The 2-line About Me */
         .about-text {
             font-size: 1.3rem;
             line-height: 1.6;
@@ -85,7 +83,6 @@
             padding: 20px;
         }
 
-        /* CTA Button */
         .cta-button {
             display: inline-block;
             padding: 15px 50px;
@@ -109,7 +106,7 @@
             box-shadow: 0 0 20px var(--primary);
         }
 
-        /* --- GAMES SECTION (The 3 Lines) --- */
+        /* --- GAMES SECTION --- */
         .games-section {
             padding: 80px 20px;
             min-height: 100vh;
@@ -141,7 +138,7 @@
 
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 3 Lines */
+            grid-template-columns: repeat(3, 1fr); /* 3 Columns */
             gap: 40px;
             max-width: 1300px;
             width: 100%;
@@ -171,10 +168,10 @@
             height: 220px;
             overflow: hidden;
             position: relative;
-            background: #000; /* Fallback color */
+            background: #000;
         }
 
-        /* New CSS for Image Placeholders */
+        /* Image Placeholders & Themes */
         .placeholder-img {
             width: 100%;
             height: 100%;
@@ -187,24 +184,38 @@
         
         .space-theme {
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: rgba(0, 242, 255, 0.3); /* Subtle cyan icon color */
+            color: rgba(0, 242, 255, 0.3);
         }
         
         .ninja-theme {
             background: linear-gradient(135deg, #2b0a0a, #4a0000, #1a0000);
-            color: rgba(255, 0, 85, 0.3); /* Subtle pink icon color */
+            color: rgba(255, 0, 85, 0.3);
+        }
+
+        /* New Themes for added games */
+        .mind-theme {
+            background: linear-gradient(135deg, #4b6cb7, #182848); /* Deep Blue/Purple */
+            color: rgba(255, 255, 255, 0.2);
         }
         
-        .mystery-theme {
-            background: linear-gradient(135deg, #111, #333);
-            color: rgba(255, 255, 255, 0.1);
+        .time-theme {
+            background: linear-gradient(135deg, #F2994A, #F2C94C); /* Gold/Orange */
+            color: rgba(0, 0, 0, 0.2);
+        }
+
+        .hacker-theme {
+            background: linear-gradient(135deg, #000000, #0f9b0f); /* Matrix Green */
+            color: rgba(0, 255, 0, 0.3);
+        }
+
+        .loop-theme {
+            background: linear-gradient(135deg, #1CD8D2, #93EDC7); /* Teal/Cyan */
+            color: rgba(0, 0, 0, 0.2);
         }
 
         .game-card:hover .placeholder-img {
             transform: scale(1.1);
         }
-        /* End Placeholder CSS */
-
 
         .card-content {
             padding: 25px;
@@ -266,7 +277,7 @@
                 padding: 15px;
             }
             .card-image-container {
-                height: 180px; /* Slightly smaller images on mobile */
+                height: 180px;
             }
         }
 
@@ -286,7 +297,7 @@
             
             <div class="about-text">
                 I am a passionate developer creating immersive digital worlds and interactive gameplay experiences.<br>
-                Check out my latest games below, featuring high-speed space combat and stealth ninja action.
+                Check out my portfolio below, featuring space combat, stealth action, and mind-bending puzzles.
             </div>
 
             <a href="#games" class="cta-button">See My Games</a>
@@ -301,7 +312,7 @@
             <article class="game-card">
                 <div class="card-image-container">
                     <div class="placeholder-img space-theme">🚀</div>
-                    </div>
+                </div>
                 <div class="card-content">
                     <div>
                         <h3 class="game-title">Space Fight</h3>
@@ -326,14 +337,53 @@
 
             <article class="game-card">
                 <div class="card-image-container">
-                     <div class="placeholder-img mystery-theme">?</div>
+                     <div class="placeholder-img mind-theme">🧠</div>
                 </div>
                 <div class="card-content">
                     <div>
-                        <h3 class="game-title" style="color: #777;">Mystery Title</h3>
-                        <p class="game-desc">A new multiplayer adventure is currently in development. Stay tuned for the release.</p>
+                        <h3 class="game-title">Mind Lock</h3>
+                        <p class="game-desc">A complex puzzle game. Unlock the secrets of the subconscious by solving psychological riddles.</p>
                     </div>
-                    <a href="#" class="play-btn" style="background: #444; pointer-events: none; color:#999;">Coming Soon</a>
+                    <a href="mind.html" class="play-btn">Play Game</a>
+                </div>
+            </article>
+
+            <article class="game-card">
+                <div class="card-image-container">
+                     <div class="placeholder-img time-theme">⏳</div>
+                </div>
+                <div class="card-content">
+                    <div>
+                        <h3 class="game-title">Time Freeze Arena</h3>
+                        <p class="game-desc">Manipulate time to survive. Freeze your enemies and dodge bullets in this slowed-down shooter.</p>
+                    </div>
+                    <a href="time.html" class="play-btn">Play Game</a>
+                </div>
+            </article>
+
+            <article class="game-card">
+                <div class="card-image-container">
+                     <div class="placeholder-img hacker-theme">💾</div>
+                </div>
+                <div class="card-content">
+                    <div>
+                        <h3 class="game-title">Memory Hacker</h3>
+                        <p class="game-desc">Cyberpunk data retrieval. Hack into secure mainframes and retrieve memories before you get caught.</p>
+                    </div>
+                    <a href="memory.html" class="play-btn">Play Game</a>
+                </div>
+            </article>
+
+            <article class="game-card">
+                <div class="card-image-container">
+                     <div class="placeholder-img loop-theme">🌀</div>
+                </div>
+                <div class="card-content">
+                    <div>
+                        <h3 class="game-title">Escape the Loop</h3>
+                        <p class="game-desc">A sci-fi mystery. You are trapped in a time loop. Find the clues to break the cycle and escape.</p>
+                    </div>
+                    <a href="loop.html" class="play-btn">Play Game</a>
                 </div>
             </article>
 
