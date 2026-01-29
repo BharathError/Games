@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CHRONOS: Escape the Loop</title>
+<style>
+    :root { --bg-color: #050505; --ui-color: #00ff41; --danger-color: #ff3333; }
+    body { margin: 0; overflow: hidden; background: var(--bg-color); font-family: 'Courier New', monospace; touch-action: none; user-select: none; }
+    
+    /* LAYOUT */
+    #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+    canvas { box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); image-rendering: pixelated; }
+
+    /* UI OVERLAY */
+    #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    
+    .hud-panel { position: absolute; background: rgba(0, 20, 0, 0.8); border: 1px solid var(--ui-color); padding: 10px; color: var(--ui-color); font-size: 14px; text-transform: uppercase; }
+    
+    #hud-top-left { top: 20px; left: 20px; }
+    #hud-top-right { top: 20px; right: 20px; text-align: right; }
+    #hud-bottom { bottom: 20px; left: 50%; transform: translateX(-50%); width: 60%; text-align: center; display: none; }
+    
+    /* DIALOGUE BOX */
+    #dialogue-box { 
+        position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); 
+        width: 80%; max-width: 600px; background: #000; border: 2px solid var(--ui-color); 
+        padding: 15px; color: #fff; display: none; pointer-events: auto;
+    }
+    .dialogue-text { margin-bottom: 10px; line-height: 1.5; }
+    .dialogue-opt { cursor: pointer; color: #888; margin: 5px 0; }
+    .dialogue-opt:hover, .dialogue-opt.active { color: var(--ui-color); text-decoration: underline; }
+
+    /* MOBILE CONTROLS */
+    #mobile-controls { display: none; pointer-events: auto; }
+    .touch-zone { position: absolute; bottom: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+    #stick-container { left: 40px; }
+    #stick-nub { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; background: rgba(0, 255, 65, 0.5); border-radius: 50%; transform: translate(-50%, -50%); transition: transform 0.1s; }
+    #action-btn { right: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--ui-color); font-size: 20px; background: rgba(0, 255, 65, 0.1); }
+    #action-btn:active { background: rgba(0, 255, 65, 0.4); }
+
+    /* FX */
+    .glitch-overlay {
+        display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: white; mix-blend-mode: exclusion;
+        animation: flash 0.1s infinite; z-index: 999;
+    }
+    @keyframes flash { 0% { opacity: 0; } 50% { opacity: 0.8; } 100% { opacity: 0; } }
+
+    @media (hover: none) and (pointer: coarse) {
+        #mobile-controls { display: block; }
+        .hud-panel { font-size: 12px; }
+    }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-layer">
+        <div id="hud-top-left" class="hud-panel">
+            Loop: <span id="loop-count">1</span><br>
+            Knowledge: <span id="knowledge-count">0</span>
+        </div>
+        <div id="hud-top-right" class="hud-panel">
+            <span id="time-display">08:00</span>
+        </div>
+        <div id="hud-bottom" class="hud-panel">Press 'E' to Interact</div>
+        
+        <div id="dialogue-box">
+            <div id="d-text" class="dialogue-text">...</div>
+            <div id="d-options"></div>
+        </div>
+
+        <div id="mobile-controls">
+            <div id="stick-container" class="touch-zone"><div id="stick-nub"></div></div>
+            <div id="action-btn" class="touch-zone">INT</div>
+        </div>
+        
+        <div id="glitch-fx" class="glitch-overlay"></div>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * CHRONOS ENGINE - ADVANCED ECS ARCHITECTURE
+ * ============================================================================
+ */
+
+// --- 1. CONSTANTS & CONFIG ---
+const TILE_SIZE = 48;
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 600;
+const LOOP_DURATION = 60; // seconds real time
+const GAME_START_HOUR = 8; // 8:00 AM
+
+const COLORS = {
+    WALL: '#2d3436', FLOOR: '#111', PLAYER: '#00b894', NPC: '#e17055',
+    INTERACT: '#fdcb6e', TEXT: '#dfe6e9', SHADOW: 'rgba(0,0,0,0.7)'
+};
+
+// --- 2. ECS FOUNDATION ---
+class Entity {
+    constructor(id) { this.id = id; this.components = {}; this.tags = new Set(); }
+    add(component) { this.components[component.name] = component; return this; }
+    get(name) { return this.components[name]; }
+    has(name) { return !!this.components[name]; }
+}
+
+class System { constructor(game) { this.game = game; } update(dt) {} }
+
+// --- 3. COMPONENTS ---
+// Data containers only. No logic.
+const C = {
+    Transform: function(x, y) { this.name = 'Transform'; this.x = x; this.y = y; this.lastX = x; this.lastY = y; },
+    Velocity: function(speed) { this.name = 'Velocity'; this.vx = 0; this.vy = 0; this.speed = speed; },
+    Sprite: function(color, char) { this.name = 'Sprite'; this.color = color; this.char = char; }, // char for debugging/style
+    Collider: function(w, h, isTrigger = false) { this.name = 'Collider'; this.w = w; this.h = h; this.isTrigger = isTrigger; },
+    Interactable: function(id, range = 60) { this.name = 'Interactable'; this.id = id; this.range = range; },
+    Schedule: function(events) { this.name = 'Schedule'; this.events = events; }, // [{time: 0.5, type: 'move', target: {x,y}}]
+    LightSource: function(radius) { this.name = 'LightSource'; this.radius = radius; }
+};
+
+// --- 4. GAME STATE & SINGLETONS ---
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = GAME_WIDTH;
+        this.canvas.height = GAME_HEIGHT;
+        
+        // State
+        this.entities = [];
+        this.systems = [];
+        this.persistentMemory = {
+            loopCount: 1,
+            codesKnown: [], // e.g. ['SAFE_CODE']
+            itemsUnlocked: []
+        };
+        this.loopTime = 0; // 0 to LOOP_DURATION
+        this.isPaused = false;
+        
+        // Input
+        this.input = { x: 0, y: 0, action: false, keys: {} };
+        this.setupInput();
+
+        // Initialize
+        this.loadLevel();
+        this.initSystems();
+        
+        // Loop
+        this.lastTime = 0;
+        requestAnimationFrame(t => this.loop(t));
+    }
+
+    createEntity(tags = []) {
+        const e = new Entity(Math.random().toString(36).substr(2, 9));
+        tags.forEach(t => e.tags.add(t));
+        this.entities.push(e);
+        return e;
+    }
+
+    resetLoop() {
+        console.log("--- LOOP RESET ---");
+        
+        // FX
+        const fx = document.getElementById('glitch-fx');
+        fx.style.display = 'block';
+        setTimeout(() => fx.style.display = 'none', 500);
+
+        this.persistentMemory.loopCount++;
+        this.loopTime = 0;
+        
+        // Destroy volatile entities
+        this.entities = this.entities.filter(e => e.tags.has('PERSISTENT'));
+        
+        // Reload World
+        this.loadLevel(true); // pass true to indicate soft reload
+        
+        // Update UI
+        document.getElementById('loop-count').innerText = this.persistentMemory.loopCount;
+    }
+    
+    // ... Input Handling ...
+    setupInput() {
+        window.addEventListener('keydown', e => { this.input.keys[e.key] = true; if(e.key === 'e') this.input.action = true; });
+        window.addEventListener('keyup', e => { this.input.keys[e.key] = false; if(e.key === 'e') this.input.action = false; });
+        
+        // Touch
+        const stick = document.getElementById('stick-container');
+        const nub = document.getElementById('stick-nub');
+        const actionBtn = document.getElementById('action-btn');
+        
+        stick.addEventListener('touchstart', e => { e.preventDefault(); this.touchActive = true; });
+        stick.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = stick.getBoundingClientRect();
+            const cx = rect.left + rect.width/2;
+            const cy = rect.top + rect.height/2;
+            const maxDist = 40;
+            
+            let dx = touch.clientX - cx;
+            let dy = touch.clientY - cy;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if(dist > maxDist) { dx = (dx/dist)*maxDist; dy = (dy/dist)*maxDist; }
+            
+            nub.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            this.input.x = dx / maxDist;
+            this.input.y = dy / maxDist;
+        });
+        
+        const endTouch = () => {
+            this.touchActive = false;
+            this.input.x = 0; this.input.y = 0;
+            nub.style.transform = `translate(-50%, -50%)`;
+        };
+        stick.addEventListener('touchend', endTouch);
+        
+        actionBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.input.action = true; });
+        actionBtn.addEventListener('touchend', (e) => { e.preventDefault(); this.input.action = false; });
+    }
+
+    initSystems() {
+        this.systems = [
+            new AISystem(this),
+            new PhysicsSystem(this),
+            new InteractionSystem(this),
+            new RenderSystem(this),
+            new TimeSystem(this)
+        ];
+    }
+
+    loadLevel(isReset = false) {
+        // Simple Level Map: 1=Wall, 0=Floor, 2=Interactive, 9=PlayerStart
+        // 15x12 Grid
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,9,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,1,1,1,2,1,1,1,0,0,0,1], // 2 is Door
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,0,0,1,1,1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,1,0,0,2,0,0,1], // Safe
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        for(let y=0; y<map.length; y++) {
+            for(let x=0; x<map[y].length; x++) {
+                const type = map[y][x];
+                const px = x * TILE_SIZE;
+                const py = y * TILE_SIZE;
+                
+                if (type === 1) {
+                    this.createEntity(['WALL'])
+                        .add(new C.Transform(px, py))
+                        .add(new C.Collider(TILE_SIZE, TILE_SIZE))
+                        .add(new C.Sprite(COLORS.WALL));
+                }
+                
+                // Door
+                if (type === 2) {
+                    this.createEntity(['DOOR'])
+                        .add(new C.Transform(px, py))
+                        .add(new C.Collider(TILE_SIZE, TILE_SIZE))
+                        .add(new C.Sprite('#555'))
+                        .add(new C.Interactable('door_01'));
+                }
+                
+                // Player Logic (Only create if not exists)
+                if (type === 9 && !isReset) {
+                    this.player = this.createEntity(['PLAYER', 'PERSISTENT'])
+                        .add(new C.Transform(px, py))
+                        .add(new C.Velocity(150))
+                        .add(new C.Collider(32, 32))
+                        .add(new C.Sprite(COLORS.PLAYER))
+                        .add(new C.LightSource(200));
+                } else if (type === 9 && isReset) {
+                    // Just move player back
+                    const tf = this.player.get('Transform');
+                    tf.x = px; tf.y = py;
+                }
+            }
+        }
+        
+        // Add NPC
+        this.createEntity(['NPC'])
+            .add(new C.Transform(400, 200))
+            .add(new C.Sprite(COLORS.NPC))
+            .add(new C.Collider(32, 32))
+            .add(new C.Interactable('npc_guard'))
+            .add(new C.Schedule([
+                { time: 10, action: 'MOVE', x: 600, y: 200 }, // At 10s, move right
+                { time: 40, action: 'MOVE', x: 400, y: 200 }  // Return
+            ]));
+
+        // Add Note (Secret)
+        this.createEntity(['ITEM'])
+            .add(new C.Transform(650, 250))
+            .add(new C.Sprite(COLORS.INTERACT))
+            .add(new C.Collider(20, 20, true))
+            .add(new C.Interactable('note_safe_code'));
+    }
+
+    loop(timestamp) {
+        if (!this.lastTime) this.lastTime = timestamp;
+        const dt = (timestamp - this.lastTime) / 1000;
+        this.lastTime = timestamp;
+
+        if (!this.isPaused) {
+            this.systems.forEach(s => s.update(dt));
+        }
+        
+        requestAnimationFrame(t => this.loop(t));
+    }
+}
+
+// --- 5. SYSTEMS IMPLEMENTATION ---
+
+class TimeSystem extends System {
+    update(dt) {
+        this.game.loopTime += dt;
+        
+        // Update UI Time
+        const progress = this.game.loopTime / LOOP_DURATION;
+        const minutesPassed = Math.floor(progress * 12 * 60); // 12 hours in game
+        const h = GAME_START_HOUR + Math.floor(minutesPassed / 60);
+        const m = minutesPassed % 60;
+        document.getElementById('time-display').innerText = 
+            `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+
+        // Check Loop End
+        if (this.game.loopTime >= LOOP_DURATION) {
+            this.game.resetLoop();
+        }
+    }
+}
+
+class PhysicsSystem extends System {
+    update(dt) {
+        // 1. Get Input Vector
+        let dx = 0, dy = 0;
+        if (this.game.input.keys['ArrowUp'] || this.game.input.keys['w']) dy = -1;
+        if (this.game.input.keys['ArrowDown'] || this.game.input.keys['s']) dy = 1;
+        if (this.game.input.keys['ArrowLeft'] || this.game.input.keys['a']) dx = -1;
+        if (this.game.input.keys['ArrowRight'] || this.game.input.keys['d']) dx = 1;
+
+        if (this.game.input.x !== 0 || this.game.input.y !== 0) {
+            dx = this.game.input.x; dy = this.game.input.y;
+        }
+
+        // Normalize
+        if (dx !== 0 || dy !== 0) {
+            const len = Math.sqrt(dx*dx + dy*dy);
+            if(len > 1) { dx/=len; dy/=len; } // Clamp for keyboard
+        }
+
+        // 2. Move Player
+        const p = this.game.player;
+        const tf = p.get('Transform');
+        const vel = p.get('Velocity');
+        const col = p.get('Collider');
+
+        // Store last valid pos
+        tf.lastX = tf.x;
+        tf.lastY = tf.y;
+
+        // Apply X
+        tf.x += dx * vel.speed * dt;
+        this.checkCollision(p, 'x');
+
+        // Apply Y
+        tf.y += dy * vel.speed * dt;
+        this.checkCollision(p, 'y');
+    }
+
+    checkCollision(entity, axis) {
+        const tf = entity.get('Transform');
+        const col = entity.get('Collider');
+        const colliders = this.game.entities.filter(e => e.has('Collider') && e !== entity);
+
+        for (const other of colliders) {
+            const otf = other.get('Transform');
+            const ocol = other.get('Collider');
+
+            if (this.aabb(tf, col, otf, ocol)) {
+                if (ocol.isTrigger) return; // Ignore triggers for physics stops
+
+                // Resolve
+                if (axis === 'x') tf.x = tf.lastX;
+                if (axis === 'y') tf.y = tf.lastY;
+            }
+        }
+    }
+
+    aabb(t1, c1, t2, c2) {
+        return (t1.x < t2.x + c2.w && t1.x + c1.w > t2.x &&
+                t1.y < t2.y + c2.h && t1.y + c1.h > t2.y);
+    }
+}
+
+class AISystem extends System {
+    update(dt) {
+        // Handle NPC Schedules
+        this.game.entities.forEach(e => {
+            if (!e.has('Schedule')) return;
+            
+            const sched = e.get('Schedule');
+            const tf = e.get('Transform');
+            
+            // Find active event
+            // Note: In a real advanced system, we'd use pathfinding (A*) here.
+            // For this slice, we lerp directly.
+            
+            sched.events.forEach(ev => {
+                if (this.game.loopTime >= ev.time && this.game.loopTime < ev.time + 10) {
+                    // Simple Lerp Movement
+                    const dx = ev.x - tf.x;
+                    const dy = ev.y - tf.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist > 5) {
+                        tf.x += (dx / dist) * 50 * dt;
+                        tf.y += (dy / dist) * 50 * dt;
+                    }
+                }
+            });
+        });
+    }
+}
+
+class InteractionSystem extends System {
+    constructor(game) {
+        super(game);
+        this.cooldown = 0;
+    }
+
+    update(dt) {
+        if (this.cooldown > 0) this.cooldown -= dt;
+        
+        // Check for interactable nearby
+        const pTf = this.game.player.get('Transform');
+        const interactables = this.game.entities.filter(e => e.has('Interactable'));
+        
+        let nearby = null;
+        for (const e of interactables) {
+            const eTf = e.get('Transform');
+            const dist = Math.sqrt((pTf.x - eTf.x)**2 + (pTf.y - eTf.y)**2);
+            if (dist < 60) nearby = e;
+        }
+
+        const hud = document.getElementById('hud-bottom');
+        if (nearby) {
+            hud.style.display = 'block';
+            hud.innerText = "Interact"; // Mobile/Desktop unified
+            
+            if (this.game.input.action && this.cooldown <= 0) {
+                this.triggerInteraction(nearby);
+                this.cooldown = 0.5; // Prevent spam
+            }
+        } else {
+            hud.style.display = 'none';
+        }
+    }
+
+    triggerInteraction(target) {
+        const id = target.get('Interactable').id;
+        const mem = this.game.persistentMemory;
+        
+        // --- CONTENT LOGIC ---
+        if (id === 'door_01') {
+            if (mem.codesKnown.includes('DOOR_CODE')) {
+                this.showDialogue("System: ACCESS GRANTED.");
+                target.get('Sprite').color = '#0f0'; // Open visual
+                target.get('Collider').isTrigger = true; // Walk through
+            } else {
+                this.showDialogue("The door is locked electronically. It needs a code.");
+            }
+        }
+        else if (id === 'note_safe_code') {
+            this.showDialogue("You found a note: 'The Manager changed the door code to 7734'.", () => {
+                if (!mem.codesKnown.includes('DOOR_CODE')) {
+                    mem.codesKnown.push('DOOR_CODE');
+                    document.getElementById('knowledge-count').innerText = mem.codesKnown.length;
+                    this.showDialogue("Code memorized. Even if time resets, you will remember.");
+                }
+            });
+        }
+        else if (id === 'npc_guard') {
+            this.showDialogue("Guard: 'This area is restricted. Wait... do I know you?'");
+        }
+    }
+
+    showDialogue(text, onComplete) {
+        this.game.isPaused = true;
+        const box = document.getElementById('dialogue-box');
+        const txt = document.getElementById('d-text');
+        const opts = document.getElementById('d-options');
+        
+        box.style.display = 'block';
+        txt.innerText = text;
+        opts.innerHTML = '<div class="dialogue-opt active">[Close]</div>';
+        
+        const closeHandler = () => {
+            box.style.display = 'none';
+            this.game.isPaused = false;
+            opts.removeEventListener('click', closeHandler);
+            if(onComplete) onComplete();
+        };
+        opts.addEventListener('click', closeHandler);
+    }
+}
+
+class RenderSystem extends System {
+    update(dt) {
+        const ctx = this.game.ctx;
+        const camX = this.game.player.get('Transform').x - GAME_WIDTH/2;
+        const camY = this.game.player.get('Transform').y - GAME_HEIGHT/2;
+
+        // Clear
+        ctx.fillStyle = COLORS.FLOOR;
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        ctx.save();
+        ctx.translate(-camX, -camY);
+
+        // Draw Entities
+        // Sort by Y for pseudo-depth
+        const renderables = [...this.game.entities].sort((a,b) => {
+            if(!a.has('Transform') || !b.has('Transform')) return 0;
+            return a.get('Transform').y - b.get('Transform').y;
+        });
+
+        renderables.forEach(e => {
+            if (!e.has('Transform') || !e.has('Sprite')) return;
+            const tf = e.get('Transform');
+            const spr = e.get('Sprite');
+            const col = e.get('Collider');
+            
+            const w = col ? col.w : TILE_SIZE;
+            const h = col ? col.h : TILE_SIZE;
+
+            ctx.fillStyle = spr.color;
+            ctx.fillRect(tf.x, tf.y, w, h);
+            
+            // Simple Shadow
+            ctx.fillStyle = COLORS.SHADOW;
+            ctx.fillRect(tf.x + 5, tf.y + h - 5, w, 5);
+        });
+
+        // Lighting / Fog of War Overlay
+        // We cut a hole in a dark overlay
+        ctx.restore(); // Back to screen space for overlay
+        
+        // Draw Darkness
+        // In a real advanced game, use a separate canvas for lighting
+        // Here we do a simple radial gradient hack
+        const p = this.game.player.get('Transform');
+        const screenPx = p.x - camX + 16;
+        const screenPy = p.y - camY + 16;
+        
+        const grad = ctx.createRadialGradient(screenPx, screenPy, 50, screenPx, screenPy, 400);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.95)');
+        
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    }
+}
+
+// --- START GAME ---
+window.onload = () => {
+    const game = new Game();
+    console.log("CHRONOS Engine Initialized.");
+};
+
+</script>
+</body>
+</html>
