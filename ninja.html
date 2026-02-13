@@ -222,7 +222,9 @@ const game = {
         if(Math.random() < 0.015 && this.obstacles.length < 3) {
             const minGap = 400 + (this.speed * 0.5);
             const lastX = this.obstacles.length ? this.obstacles[this.obstacles.length-1].x : 0;
-            if(this.width - lastX > minGap) {
+            
+            // FIX: Allow spawn if no obstacles exist OR if gap is sufficient
+            if(this.obstacles.length === 0 || this.width - lastX > minGap) {
                 this.obstacles.push(new Obstacle(this.width + 100));
             }
         }
